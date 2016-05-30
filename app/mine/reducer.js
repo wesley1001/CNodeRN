@@ -1,29 +1,12 @@
 'use strict'
 
+import {combineReducers} from "redux"
 import * as constants from "./constant"
-
+import {userPrefsReducer} from "../common/reducer"
 
 export function userReducer(state={},action){
+    let user = null
     switch(action.type){
-        case constants.START_AUTHORIZE:
-            return {
-                ...state,
-                isAuthorizing:true
-            }
-        case constants.FINISH_AUTHORIZE:
-            let user = null
-            if(action.ret.success){
-                user = {
-                    username:action.ret.loginname,
-                    accessToken:action.accessToken
-                }
-            }
-            return {
-                ...state,
-                isAuthorizing:false,
-                isAuthorized:action.ret.success,
-                user
-            }
         case constants.REQUEST_USER:
             return {
                 ...state,
@@ -46,3 +29,8 @@ export function userReducer(state={},action){
             return state
     }
 }
+
+export default combineReducers({
+    userReducer,
+    userPrefsReducer
+})

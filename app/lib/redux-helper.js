@@ -1,65 +1,63 @@
 'use strict'
 
-import React,{Component,AsyncStorage} from "react-native"
+import {createStore,applyMiddleware,compose,bindActionCreators} from "redux"
 import {connect,Provider} from "react-redux"
-import {createStore,bindActionCreators,compose,applyMiddleware} from "redux"
-import {autoRehydrate,persistStore} from "redux-persist"
 import thunkMiddleware from "redux-thunk"
 import createLogger from "redux-logger"
+import {autoRehydrate,persistStore} from "redux-persist"
+import React,{AsyncStorage,Component} from "react-native"
+import _ from "lodash"
 
-const logger = createLogger()
+const isDebugInChrome = __DEV__ && window.navigator.userAgent
 
-const createStoreWithMiddleware = compose(
-    applyMiddleware(thunkMiddleware)
-    // typeof window === 'object' && 
-    // typeof window.devToolsExtension !== 'undefined' ? window.devToolsExtension() : f => f
+let middlewares = [
+    thunkMiddleware    
+]
+
+const logger = createLogger({
+    // predicate: (getState, action) => isDebugInChrome,
+    // collapsed: true,
+    // duration: true
+})
+
+if(isDebugInChrome){
+    middlewares.push(logger)
+}
+
+const createStoreWithMiddlewares = compose(
+    applyMiddleware(...middlewares),
+    typeof window.devToolsExtension !== 'undefined' ? window.devToolsExtension() : f => f
 )(createStore)
 
- /**
- * return binded Component
- * 
- * @param UnbindComponent React.Component
- * @param actions Array<Function>
- * @returns bindedComponent React.Component
- */
-function bindActionsToComponent(UnbindComponent,actions){
+export function configureStore(rootReducer,initialState,onComplete=()=>{}){
+    // let store = initialState?createStoreWithMiddlewares(rootReducer,initialState):createStoreWithMiddlewares(rootReducer)
+    const createStoreRehydrated = autoRehydrate()(createStoreWithMiddlewares)
+    const store = initialState?createStoreRehydrated(rootReducer,initialState):createStoreRehydrated(rootReducer)
+    // persistStore(store,{storage:AsyncStorage},onComplete).purgeAll()
+    if(isDebugInChrome){
+        window.store = store
+    }
+    return store
+}
+
+
+export function createContainer(OriginComponent,store,actions,mapStateToProps=state=>state){
+    const mapDispatchToProps = _.isFunction(actions)?actions:(dispatch)=>({
+        actions:bindActionCreators(actions,dispatch)
+    })
+    const ConnectedComponent = connect(mapStateToProps,mapDispatchToProps)(OriginComponent)
     return class extends Component{
         render(){
             return (
-                <UnbindComponent {...this.props} 
-                {...bindActionCreators(actions,this.props.dispatch)}/>
+                <Provider store={store}>
+                <ConnectedComponent {...this.props}/>
+                </Provider>
             )
         }
     }
 }
 
-
-/**
- * return container Component
- * 
- * @export
- * @param OriginalComponent React.Component
- * @param rootReducer Function
- * @param actions Array<Function>
- * @param selector Function
- * @param initialState Object
- * @returns (description)
- */
-export function containerByComponent(OriginalComponent,rootReducer,actions,initialState=null,selector=(state)=>state,
-onComplete=()=>{}){
-    let bindedComponent = bindActionsToComponent(OriginalComponent,actions)
-    let ConnectedComponent = connect(selector)(bindedComponent)
-    
-    const configureStore = autoRehydrate()(createStoreWithMiddleware)
-    const store = initialState?configureStore(rootReducer,initialState):configureStore(rootReducer)
-    persistStore(store,{storage:AsyncStorage},onComplete)
-    return class extends Component{
-        render(){
-            return (
-                <Provider store={store}>
-                    <ConnectedComponent {...this.props}/>
-                </Provider>
-            )
-        }
-    }
+export default function(OriginComponent,rootReducer,actions,initialState,mapStateToProps){
+    const store = configureStore(rootReducer,initialState)
+    return createContainer(OriginComponent,store,actions,mapStateToProps)    
 }

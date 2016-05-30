@@ -2,25 +2,42 @@
 
 import {StyleSheet, Platform} from "react-native"
 import listview from "../../common/stylesheet/listview"
-import navigationbar from "../../common/stylesheet/navigationbar"
 import modal from "../../common/stylesheet/modal"
 
 const styles = {
     ...listview,
-    ...navigationbar,
     ...modal,
+    navigationBarButton:{
+        marginRight:8,
+        flexDirection:"row",
+        alignItems:"center",
+        justifyContent:"center",
+        width:50
+    },
+    navigationBarButtonText:{
+        fontSize:16,
+        color:"#666"
+        // paddingLeft:3 
+    },
+    navigationBarTitle:{
+        marginVertical:Platform.OS === "ios"?8:6,
+        flexDirection:"row",
+        alignItems:"center"
+    },
     navigationBarTitleText:{
-      ...navigationbar.navigationBarTitleText,
-      marginRight:8  
+        fontSize:16,
+        marginRight:8
     },
     container:{
         flex:1,
         backgroundColor:"#FFF",
         marginBottom:49
     },
-    listCell:{
-      ...listview.listCell,
-      flexDirection:"column"  
+    topicCell:{
+        flex: 1,
+        padding: 10,
+        backgroundColor:"#FFF",
+        flexDirection:"column"
     },
     topicImage:{
         width:35,
@@ -41,22 +58,40 @@ const styles = {
         fontSize:13,
         lineHeight:20
     },
+    topicMintitle:{
+        flexDirection:"row",
+        alignItems:"center"
+    },
     topicMintitleText:{
         fontSize:12,
         color:"#999",
         lineHeight:15
     },
-    topicBadge:{
-        width:50,
+    topicTag:{
         paddingHorizontal:8,
-        paddingVertical:4,
-        backgroundColor:"#F8F8F8",
-        borderRadius:3
+        paddingVertical:2,
+        backgroundColor:"#EFEFEF",
+        borderRadius:3,
+        marginLeft:8
     },
-    topicBadgeText:{
+    topicTagText:{
         fontSize:12,
         color:"#666"
         // lineHeight:15
+    },
+    topicAccessory:{
+        // width:50
+        paddingHorizontal:5
+    },
+    topicStatic:{
+      fontSize:13,
+      color:"#666"  
+    },
+    topicReply:{
+    //   marginRight:8,
+      color:"#333",
+      fontSize:14,
+      fontWeight:"700"  
     },
     topicTitle:{
         // paddingHorizontal:8,
@@ -66,6 +101,9 @@ const styles = {
       fontSize:15  
     },
     modalRow:{
+        flex:1,
+        flexDirection:"row",
+        justifyContent:"center",
         // lineHeight:20,
         paddingVertical:8
     },
@@ -74,6 +112,15 @@ const styles = {
     },
     modalSelectedRowText:{
         color:"blue"
+    },
+    modalCancelRow:{
+        flex:1,
+        flexDirection:"row",
+        justifyContent:"center",
+        // lineHeight:20,
+        paddingVertical:10,
+        borderTopWidth:0.5,
+        borderColor:"#DDD"
     }
 }
 

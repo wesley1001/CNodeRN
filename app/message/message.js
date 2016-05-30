@@ -1,18 +1,17 @@
 'use strict'
 
-import React,{Component,View,StyleSheet,Text,ListView,Image} from "react-native"
-import NavigationBar from "react-native-navbar"
-import {Actions} from "react-native-router-flux"
+import React,{Component,View,StyleSheet,Text,ListView,Image,Alert} from "react-native"
 import ScrollableTabView from "react-native-scrollable-tab-view"
 
-import {containerByComponent} from "../lib/redux-helper"
+import containerByComponent from "../lib/redux-helper"
 import {messageReducer} from "./reducer"
 import {fetchMessages,fetchMessageCount,markAllMessage} from "./action"
-import Tabs from "../common/tabs"
+import Tabs from "../common/component/tabs"
+import Loading from "../common/component/loading"
+import Anonymous from "../common/module/anonymous"
+import NavBar from "../common/component/navbar"
 
 import styles from "./stylesheet/message"
-
-import fakeMessages from "./fake"
 
 class Message extends Component{
     constructor(props){
@@ -23,27 +22,25 @@ class Message extends Component{
             }),
             readDataSource:new ListView.DataSource({
                 rowHasChanged:(r1,r2)=> r1 !== r2
-            })
+            }),
+            isLogined:false
         }
     }
     componentDidMount(){
-        this.props.fetchMessages("01206bae-f6ed-42de-bd0e-3775776deaf9")
+        global.storage.getItem("user").then((user)=>{
+            if(user){
+                this.setState({isLogined:true})
+                this.props.actions.fetchMessages(user.accessToken)
+            }
+        })
     }
     componentWillReceiveProps(nextProps){
         if(nextProps.messagesFetched && !nextProps.messagesFetching){
             this.setState({
-                unreadDataSource:this.state.unreadDataSource.cloneWithRows(fakeMessages.hasnot_read_messages),
-                readDataSource:this.state.readDataSource.cloneWithRows(fakeMessages.has_read_messages)
+                unreadDataSource:this.state.unreadDataSource.cloneWithRows(nextProps.messages.hasnot_read_messages),
+                readDataSource:this.state.readDataSource.cloneWithRows(nextProps.messages.has_read_messages)
             })
         }
-    }
-    _renderNavigationBar(){
-        const title = (
-            <View style={styles.navigationBarTitle}>
-                <Text style={styles.navigationBarTitleText}>消息</Text>
-            </View>
-        )
-        return <NavigationBar title={title} style={styles.navigationBar} tintColor="#F8F8F8"/>
     }
     _renderMessage(message){
         return (
@@ -86,8 +83,8 @@ class Message extends Component{
     render(){
         return (
             <View style={styles.container}>
-            {this._renderNavigationBar()}
-            {this._renderTimeline()}
+            <NavBar title="消息" leftButton={false}/>
+            {!this.state.isLogined?<Anonymous />:this.props.messagesFetching?<Loading />:this._renderTimeline()}
             </View>
         )
     }

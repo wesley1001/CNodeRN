@@ -1,16 +1,15 @@
 'use strict'
 
-import React,{Component,View,Text,Image,ScrollView,TouchableOpacity,ListView,InteractionManager} from "react-native"
-import NavigationBar from "react-native-navbar"
-import {Actions} from "react-native-router-flux"
+import React,{Component,View,Text,Image,ScrollView,TouchableOpacity,ListView,InteractionManager,Dimensions} from "react-native"
 import Icon from "react-native-vector-icons/FontAwesome"
-import HTMLView from "../common/htmlview"
-import timer from "react-timer-mixin"
 
-import Loading from "../common/loading"
+import HTMLView from "../common/component/htmlview"
+import Loading from "../common/component/loading"
+import NavBar from "../common/component/navbar"
+import Alert from "../common/component/alert"
 
-import {containerByComponent} from "../lib/redux-helper"
-import {fetchTopic} from "./action"
+import containerByComponent from "../lib/redux-helper"
+import {fetchTopic,toggleCollect,toggleAgree} from "./action"
 import {topicReducer} from "./reducer"
 
 import styles from "./stylesheet/topic"
@@ -21,15 +20,19 @@ class Topic extends Component{
         this.state = {
             loading:true,
             dataSource:new ListView.DataSource({
-                rowHasChanged:(r1,r2)=>r1 !== r2,
+                rowHasChanged:(r1,r2)=>{
+                    return r1 !== r2
+                },
                 sectionHeaderHasChanged:(s1,s2)=>s1 !== s2
             })
         } 
     }
     componentDidMount(){
-        InteractionManager.runAfterInteractions(()=>{
-            this.props.fetchTopic(this.props.id)    
+        // InteractionManager.runAfterInteractions(()=>{
+        requestAnimationFrame(()=>{
+            this.props.actions.fetchTopic(this.props.id)    
         })
+        // })
     }
     componentWillReceiveProps(nextProps){
         if(nextProps.topicFetched && !nextProps.topicFetching){
@@ -38,31 +41,68 @@ class Topic extends Component{
                 dataSource:this.state.dataSource.cloneWithRows(nextProps.topic.replies)
             })
         }
+        if(!nextProps.agreeToggling && nextProps.agreeToggled){
+            this.setState({
+                dataSource:this.state.dataSource.cloneWithRows(nextProps.topic.replies)
+            })
+        }
+    }
+    async _toggleCollect(){
+        const {id,topic} = this.props
+        if(!topic){
+            return
+        }
+        const user = await global.storage.getItem("user")
+        if(!user){
+            this._alert.alert("请先登录","登录",[
+                {text:"取消",style:"cancel"},
+                {text:"确定",onPress:()=>Actions.login()}
+            ])
+        }else{
+            this.props.actions.toggleCollect(id,user.accessToken,topic.is_collect)
+        }
+    }
+    async _toggleAgree(replyID){
+        const user = await global.storage.getItem("user")
+        if(!user){
+            this._alert.alert("请先登录","",[
+                {text:"取消",style:"cancel"},
+                {text:"确定",onPress:()=>Actions.login()}
+            ])
+        }else{
+            this.props.actions.toggleAgree(replyID,user.accessToken)
+        }
+    }
+    async _toReply(param){
+        const user = await global.storage.getItem("user")
+        if(!user){
+            this._alert.alert("请先登录","",[
+                {text:"取消",style:"cancel"},
+                {text:"确定",onPress:()=>Actions.login()}
+            ])
+        }else{
+            Actions.reply(param)
+        }
     }
     renderNavigationBar(){
-        const title = (
-            <View style={styles.navigationBarTitle}>
-                <Text style={styles.navigationBarTitleText}>主题详情</Text>
+        const {topic} = this.props
+        const isCollect = topic && topic.is_collect
+        const rightButton = (
+            <View style={[styles.navigationBarButton,{marginRight:5}]}>
+                <TouchableOpacity onPress={this._toggleCollect.bind(this)}>
+                    <Icon name={isCollect?"heart":"heart-o"} size={20} color={isCollect?"#333":"#999"}/>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={()=>{
+                    if(!topic){
+                        return
+                    }
+                    this._toReply({id:topic.id})
+                }} style={{marginLeft:8}}>
+                    <Icon name="mail-reply" size={20} color="#999"/>
+                </TouchableOpacity>
             </View>
         )
-        const rightButton = (
-            <TouchableOpacity style={[styles.navigationBarButton,{marginLeft:5}]} onPress={()=>{
-                const {topic} = this.props
-                if(!topic){
-                    return
-                }
-                Actions.reply({id:topic.id})
-            }}>
-                <Icon name="mail-reply" size={20} color="#999"/>
-            </TouchableOpacity>
-        )
-        const leftButton = (
-            <TouchableOpacity style={[styles.navigationBarButton,{marginLeft:5}]} onPress={()=>Actions.pop()}>
-            <Icon name="angle-left" size={25} color="#666"/>
-            <Text style={styles.navigationBarButtonText}>返回</Text>
-            </TouchableOpacity>
-        )
-        return <NavigationBar title={title} leftButton={leftButton} rightButton={rightButton} style={styles.navigationBar} tintColor="#F8F8F8"/>
+        return <NavBar title="主题详情" rightButton={()=>rightButton} {...this.props}/>
     }
     renderContent(){
         const {topic} = this.props
@@ -78,15 +118,18 @@ class Topic extends Component{
                         <Text style={styles.topicSubtitleText}>{reply.author.loginname}</Text>
                         <Text style={styles.topicMintitleText}>{reply.create_at}</Text>
                     </View>
-                    <View style={styles.topicCommentBadge}>
-                        <Icon name="comment" size={15} color="#AAA"/>
-                    </View>
-                    <View style={styles.topicCommentBadge}>
-                        <Icon name="thumbs-up" size={15} color="#AAA"/>
-                    </View>
+                    <TouchableOpacity style={styles.topicCommentBadge} onPress={()=>{
+                        this._toReply({id:this.props.topic.id,replyTo:reply})
+                    }}>
+                        <Icon name="mail-reply" size={15} color="#AAA"/>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.topicCommentBadge,styles.topicAgreeBadge]} onPress={this._toggleAgree.bind(this,reply.id)}>
+                        <Icon name="thumbs-up" size={15} color={reply.agreeStatus === "up"?"#333":"#AAA"}/>
+                        <Text style={[styles.topicAgreeBadgeText,{color:reply.agreeStatus === "up"?"#333":"#AAA"}]}> +{reply.ups.length}</Text>
+                    </TouchableOpacity>
                 </View>
                 <View style={styles.topicDesc}>
-                    <HTMLView html={reply.content.replace(/\s/g,"")}/>
+                    <HTMLView value={reply.content.replace(/(\n|\r)+$/g,"")}/>
                 </View>
                 </View>            
             )
@@ -94,7 +137,8 @@ class Topic extends Component{
         
         return (
             <ListView dataSource={this.state.dataSource}  style={styles.topicContent} 
-            initialListSize={10} removeClippedSubviews={true} enableEmptySections={true} 
+            scrollRenderAheadDistance={20} 
+            initialListSize={1} removeClippedSubviews={true} enableEmptySections={true} 
             renderRow={renderComment} renderHeader={()=>{
                 return (
                     <View>
@@ -107,7 +151,7 @@ class Topic extends Component{
                             <View style={styles.topicBadge}><Text style={styles.topicBadgeText}>{topic.tab}</Text></View>
                         </View>
                         <View style={styles.topicDesc}>
-                            <HTMLView html={topic.content.replace(/\s/g,"")}/>
+                            <HTMLView value={topic.content.replace(/(\n|\r)+$/g,"")} maxImageWidth={Dimensions.get("window").width - 16}/>
                         </View>
                         <View style={styles.topicComments}>
                             <Text style={styles.topicCommentsStatus}>{topic.reply_count} 回复 | 最后回复: {topic.last_reply_at}</Text>
@@ -122,12 +166,13 @@ class Topic extends Component{
             <View style={styles.container}>
             {this.renderNavigationBar()}
             {this.state.loading?<Loading />:this.renderContent()}
+            <Alert ref={(view)=>this._alert=view}/>
             </View>
         )
     }
 }
 
-export default containerByComponent(Topic,topicReducer,{fetchTopic},{...this.props})
+export default containerByComponent(Topic,topicReducer,{fetchTopic,toggleAgree,toggleCollect},{...this.props})
 
 
 

@@ -1,6 +1,6 @@
 'use strict'
 
-import React,{Component,Text,View,TextInput,TouchableOpacity,StyleSheet} from "react-native"
+import React,{Component,Text,View,TextInput,TouchableOpacity,StyleSheet,Platform} from "react-native"
 
 export default class SearchBar extends Component{
     constructor(props){
@@ -15,8 +15,10 @@ export default class SearchBar extends Component{
         }
         return (
         <View style={styles.searchBar}>
-        <TextInput style={styles.searchBarInput} ref="searchTextInput" placeholder="请输入搜索关键字" clearButtonMode="while-editing" 
-        onChangeText={(keyword)=>this.setState({keyword})}/>
+        <View style={styles.searchBarInputWrap}>
+            <TextInput style={styles.searchBarInput} ref="searchTextInput" placeholder="请输入搜索关键字" clearButtonMode="while-editing" 
+            onChangeText={(keyword)=>this.setState({keyword})}/>
+        </View>
         <TouchableOpacity style={styles.searchBarButton} onPress={this.state.keyword === ""?this.props.onClose:handleSearch}>
             <Text style={styles.searchBarButtonText}>{this.state.keyword === ""?"取消":"搜索"}</Text>
         </TouchableOpacity>
@@ -31,7 +33,7 @@ SearchBar.defaultProps = {
     onClose:()=>{}
 }
 
-const styles = StyleSheet.create({
+const stylesForAll = {
     searchBar:{
         height:64,
         paddingTop:20,
@@ -47,20 +49,53 @@ const styles = StyleSheet.create({
         height:44,
         flexDirection:"row",
         alignItems:"center",
-        justifyContent:"center",
+        justifyContent:"center"
     },
     searchBarButtonText:{
         color:"#666"
     },
-    searchBarInput:{
+    searchBarInputWrap:{
         flex:1,
-        height:30,
         paddingHorizontal:8,
         marginVertical:7,
         borderRadius:5,
         borderColor:"#DDD",
-        borderWidth:0.5,
+        backgroundColor:"#FDFDFD",
+        borderWidth:0.5
+    },
+    searchBarInput:{
         fontSize:15,
         color:"#666"
     }
-})
+}
+
+const stylesForAndroid = {
+    searchBar:{
+        ...stylesForAll.searchBar,
+        height:44,
+        paddingTop:0
+    },
+    searchBarInputWrap:{
+        ...stylesForAll.searchBarInputWrap,
+        paddingHorizontal:0,
+        marginVertical:0
+    },
+    searchBarInput:{
+        ...stylesForAll.searchBarInput,
+        paddingHorizontal:8,
+        paddingVertical:1,
+        backgroundColor:"transparent"
+    }
+}
+
+const stylesForIOS = {
+    searchBarInputWrap:{
+        ...stylesForAll.searchBarInputWrap,
+        height:30
+    }
+}
+
+const styles = StyleSheet.create(Object.assign({},stylesForAll,
+    Platform.OS === "android"?stylesForAndroid:{},
+    Platform.OS === "ios"?stylesForIOS:{}
+))

@@ -1,13 +1,23 @@
 'use strict'
 
 import {StyleSheet, Platform} from "react-native"
-import navigationbar from "../../common/stylesheet/navigationbar"
 
 const styles = {
-    ...navigationbar,
     container:{
         flex:1,
         backgroundColor:"#FFF"
+    },
+    navigationBarButton:{
+        marginRight:8,
+        flexDirection:"row",
+        alignItems:"center",
+        justifyContent:"center",
+        width:50
+    },
+    navigationBarButtonText:{
+        fontSize:16,
+        color:"#666"
+        // paddingLeft:3 
     },
     topicImage:{
         width:35,
@@ -42,7 +52,7 @@ const styles = {
         paddingHorizontal:8,
         paddingVertical:4,
         backgroundColor:"#F8F8F8",
-        borderRadius:3,
+        borderRadius:3
     },
     topicBadgeText:{
         fontSize:12,
@@ -67,6 +77,7 @@ const styles = {
     },
     topicComments:{
         paddingVertical:8,
+        paddingHorizontal:8,
         borderTopWidth:8,
         borderColor:"#DDD"
     },
@@ -88,12 +99,22 @@ const styles = {
         paddingVertical:5,
         borderBottomWidth:0.5,
         paddingHorizontal:8,
-        borderColor:"#DDD"
+        borderColor:"#DDD",
+        overflow:"hidden"
     },
     topicCommentBadge:{
         paddingHorizontal:8,
         paddingVertical:4,
         marginRight:5
+    },
+    topicAgreeBadge:{
+      flexDirection:"row",
+      alignItems:"center"  
+    },
+    topicAgreeBadgeText:{
+      fontSize:12,
+      fontWeight:"700",
+      color:"#AAA"  
     },
     replyWrap:{
        flex:1
@@ -102,7 +123,8 @@ const styles = {
        paddingHorizontal:8,
        paddingVertical:10,
        fontSize:13,
-       flex:1
+       textAlignVertical:"top"
+    //    flex:1
     }
 }
 

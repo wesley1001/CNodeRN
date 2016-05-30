@@ -4,10 +4,14 @@ import {
     REQUEST_TOPICS,RESPONSE_TOPICS,
     REQUEST_TOPIC,RESPONSE_TOPIC,
     CHANGE_CATEGORY,FILTER_TOPICS,
-    START_SAVEREPLY,FINISH_SAVEREPLY
+    START_SAVEREPLY,FINISH_SAVEREPLY,
+    START_SAVETOPIC,FINISH_SAVETOPIC,CHANGE_FIELD,
+    START_TOGGLEAGREE,FINISH_TOGGLEAGREE,
+    START_TOGGLECOLLECT,FINISH_TOGGLECOLLECT
 } from "./constant"
 
 import api from "../lib/api"
+import request from "../lib/request"
 
 function requestTopics(category,pageIndex) {
     return {
@@ -90,12 +94,95 @@ function finishSaveReply(ret){
 export function saveReply(id,reply){
     return (dispatch)=>{
         dispatch(startSaveReply())
-        let formdata = new FormData()
-        for(let k in reply){
-            formdata.append(k,reply[k])
-        }
-        fetch(`${api.reply2topic}/${id}/replies`,{method:"POST",body:formdata}).then((ret)=>ret.json()).then((ret)=>{
+        request.post(`${api.reply2topic}/${id}/replies`,reply).then((ret)=>{
             dispatch(finishSaveReply(ret))
+        })
+    }
+}
+
+function startSaveTopic(){
+    return {
+        type:START_SAVETOPIC
+    }
+}
+
+function finishSaveTopic(ret){
+    return {
+        type:FINISH_SAVETOPIC,
+        ret,
+        respondAt:Date.now()
+    }
+}
+
+export function saveTopic(topic){
+    return dispatch=>{
+        dispatch(startSaveTopic())
+        request.post(`${api.topics}`,topic).then((ret)=>{
+            dispatch(finishSaveTopic(ret))
+        })
+    }
+}
+
+export function changeField(key,value){
+    return {
+        type:CHANGE_FIELD,
+        key,value
+    }
+}
+
+function startToggleCollect(){
+    return {
+        type:START_TOGGLECOLLECT
+    }
+}
+
+function finishToggleCollect(isCollected,ret){
+    return {
+        type:FINISH_TOGGLECOLLECT,
+        ret,
+        isCollected,
+        respondAt:Date.now()
+    }
+}
+
+export function toggleCollect(topicID,accessToken,isCollected=true){
+    return dispatch=>{
+        dispatch(startToggleCollect())
+        const apiURL = !isCollected?api.addCollect:api.delCollect
+        // console.log("apiURL",apiURL,isCollected)
+        request.post(`${apiURL}`,{
+            accesstoken:accessToken,
+            topic_id:topicID
+        }).then((ret)=>{
+            // console.log("ret",ret)
+            dispatch(finishToggleCollect(isCollected,ret))
+        })
+    }
+}
+
+function startToggleAgree(){
+    return {
+        type:START_TOGGLEAGREE
+    }
+}
+
+function finishToggleAgree(replyID,accessToken,ret){
+    return {
+        type:FINISH_TOGGLEAGREE,
+        ret,
+        replyID,
+        accessToken,
+        respondAt:Date.now()
+    }
+}
+
+export function toggleAgree(replyID,accessToken){
+    return dispatch=>{
+        dispatch(startToggleAgree())
+        request.post(`${api.agreeReply}/${replyID}/ups`,{
+            accesstoken:accessToken
+        }).then((ret)=>{
+            dispatch(finishToggleAgree(replyID,accessToken,ret))
         })
     }
 }

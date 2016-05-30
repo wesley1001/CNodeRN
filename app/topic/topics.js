@@ -1,17 +1,16 @@
 'use strict'
 
 import React,{Component,View,Text,Image,ListView,Platform,Modal,TouchableOpacity,Animated,RefreshControl,TextInput,LayoutAnimation} from "react-native"
-import {Actions} from "react-native-router-flux"
-import NavigationBar from "react-native-navbar"
 import Icon from "react-native-vector-icons/FontAwesome"
-import {containerByComponent} from "../lib/redux-helper"
+import containerByComponent from "../lib/redux-helper"
 
 import {topicsReducer} from "./reducer"
 import {fetchTopics,changeCategory,filterTopics} from "./action"
 
-import LoadMore from "../common/loadmore"
-import Loading from "../common/loading"
-import SearchBar from "../common/searchbar"
+import LoadMore from "../common/component/loadmore"
+import Loading from "../common/component/loading"
+import SearchBar from "../common/module/searchbar"
+import NavBar from "../common/component/navbar"
 
 import styles from "./stylesheet/topics"
 
@@ -31,7 +30,7 @@ class Topics extends Component{
     componentDidMount(){
         const {categories,selectedCategory} = this.props
         if(categories[selectedCategory].list.length === 0){
-            this.props.fetchTopics()
+            this.props.actions.fetchTopics()
         }else{
             this.setState({
                 dataSource:this.state.dataSource.cloneWithRows(categories[selectedCategory].list)
@@ -40,13 +39,13 @@ class Topics extends Component{
     }
     handleLoadMore(){
         const {categories,selectedCategory} = this.props
-        this.props.fetchTopics(selectedCategory,categories[selectedCategory].pageIndex + 1)
+        this.props.actions.fetchTopics(selectedCategory,categories[selectedCategory].pageIndex + 1)
     }
     handleRefresh(){
-        this.props.fetchTopics(this.props.selectedCategory)
+        this.props.actions.fetchTopics(this.props.selectedCategory)
     }
     handleSearch(keyword){
-        this.props.filterTopics(keyword)
+        this.props.actions.filterTopics(keyword)
     }
     toggleSearchActive(){
         this.setState({
@@ -60,8 +59,8 @@ class Topics extends Component{
     }
     handleCategoryChange(category){
         this.toggleModalActive()
-        this.props.changeCategory(category)
-        this.props.fetchTopics(category)
+        this.props.actions.changeCategory(category)
+        this.props.actions.fetchTopics(category)
     }
     componentWillReceiveProps(nextProps){
         if(!nextProps.topicsFetching && nextProps.topicsFetched){
@@ -73,10 +72,9 @@ class Topics extends Component{
     }
     renderNavigationBar(){
         const {categories,selectedCategory} = this.props
-        const title = (
-            <TouchableOpacity style={styles.navigationBarTitle} onPress={this.toggleModalActive.bind(this)}>
-                <Text style={styles.navigationBarTitleText}>{categories[selectedCategory].name}</Text>
-                <Icon name="angle-down" size={16} color="#999"/>
+        const leftButton = (
+            <TouchableOpacity style={[styles.navigationBarButton,{marginLeft:5}]} onPress={()=>this.props.router.publish()}>
+            <Icon name="edit" size={22} color="#999"/>
             </TouchableOpacity>
         )
         const rightButton = (
@@ -84,7 +82,13 @@ class Topics extends Component{
             <Icon name="search" size={20} color="#999"/>
             </TouchableOpacity>
         )
-        return <NavigationBar title={title} rightButton={rightButton} style={styles.navigationBar} tintColor="#F8F8F8"/>
+        const title = (            
+            <TouchableOpacity style={styles.navigationBarTitle} onPress={this.toggleModalActive.bind(this)}>
+                <Text style={styles.navigationBarTitleText}>{categories[selectedCategory].name}</Text>
+                <Icon name="angle-down" size={16} color="#999"/>
+            </TouchableOpacity>
+        )
+        return <NavBar leftButton={()=>leftButton} rightButton={()=>rightButton} title={()=>title}/>
     }
     renderModal(){
         const {categories,selectedCategory} = this.props
@@ -99,6 +103,9 @@ class Topics extends Component{
                 <Text style={[styles.modalRowText,v === selectedCategory?styles.modalSelectedRowText:null]}>{category.name}</Text>
                 </TouchableOpacity>
             })}
+                <TouchableOpacity style={styles.modalCancelRow} onPress={this.toggleModalActive.bind(this)}>
+                    <Text style={[styles.modalRowText,{color:"red"}]}>取消</Text>
+                </TouchableOpacity>
             </View>
             </View>
             </Modal>
@@ -110,18 +117,23 @@ class Topics extends Component{
     }
     renderRow(topic){
         return (
-            <TouchableOpacity onPress={()=>Actions.topic({id:topic.id})}>
-            <Animated.View style={[styles.listCell, {
+            <TouchableOpacity onPress={()=>this.props.router.topic({id:topic.id})}>
+            <Animated.View style={[styles.topicCell, {
                 // opacity: this.state.rowScale,
                 // transform: [{ scaleX: this.state.rowScale }]
             }]}>
                     <View style={styles.topicBreif}>
-                    <Image source={{uri:topic.author.avatar_url}} style={styles.topicImage}/>
-                    <View style={styles.topicSubtitle}>
-                        <Text style={styles.topicSubtitleText}>{topic.author.loginname}</Text>
-                        <Text style={styles.topicMintitleText}>{topic.create_at}</Text>
-                    </View>
-                    <View style={styles.topicBadge}><Text style={styles.topicBadgeText}>{topic.tab}</Text></View>
+                        <Image source={{uri:topic.author.avatar_url}} style={styles.topicImage}/>
+                        <View style={styles.topicSubtitle}>
+                            <Text style={styles.topicSubtitleText}>{topic.author.loginname}</Text>
+                            <View style={styles.topicMintitle}>
+                                <Text style={styles.topicMintitleText}>{topic.create_at}</Text>
+                                <View style={styles.topicTag}><Text style={styles.topicTagText}>{topic.tab}</Text></View>
+                            </View>
+                        </View>
+                        <View style={styles.topicAccessory}>
+                            <Text style={styles.topicStatic}><Text style={styles.topicReply}>{topic.reply_count}</Text> /{topic.visit_count}</Text>
+                        </View>
                     </View>
                     <View style={styles.topicTitle}>
                         <Text style={styles.topicTitleText} numberOfLines={2}>{topic.title}</Text>
